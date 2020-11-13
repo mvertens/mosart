@@ -31,7 +31,7 @@ def _build_mosart():
         if not os.path.isfile(filepath_file):
             srcroot = case.get_value("SRCROOT")
             caseroot = case.get_value("CASEROOT")
-            paths = [ os.path.join(caseroot,"SourceMods","src.mosart"), 
+            paths = [ os.path.join(caseroot,"SourceMods","src.mosart"),
                       os.path.join(srcroot,"components","mosart","src","riverroute"),
                       os.path.join(srcroot,"components","mosart","src","cpl")]
 
@@ -55,6 +55,3 @@ def _build_mosart():
 
 if __name__ == "__main__":
     _build_mosart()
-
-
-
