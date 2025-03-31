@@ -4,34 +4,33 @@ module mosart_driver
    ! Mosart Routing Model
    !-----------------------------------------------------------------------
 
-   use shr_kind_mod            , only : r8 => shr_kind_r8, CS => shr_kind_cs, CL => shr_kind_CL
-   use shr_sys_mod             , only : shr_sys_abort
-   use shr_const_mod           , only : SHR_CONST_PI, SHR_CONST_CDAY
-   use shr_lnd2rof_tracers_mod , only : shr_lnd2rof_tracers_readnl
-   use mosart_vars             , only : re, spval, iulog, ice_runoff, &
-                                        frivinp, nsrContinue, nsrBranch, nsrStartup, nsrest, &
-                                        inst_index, inst_suffix, inst_name, decomp_option, &
-                                        bypass_routing_option, qgwl_runoff_option, barrier_timers, &
-                                        mainproc, npes, iam, mpicom_rof, budget_frq, isecspday,    &
-                                        debug_mosart
-   use mosart_data             , only : ctl, Tctl, Tunit, TRunoff, Tpara
-   use mosart_budget_type      , only : budget_type
-   use mosart_fileutils        , only : getfil
-   use mosart_timemanager      , only : timemgr_init, get_nstep, get_curr_date
-   use mosart_histflds         , only : mosart_histflds_init, mosart_histflds_set
-   use mosart_histfile         , only : mosart_hist_updatehbuf, mosart_hist_htapeswrapup, mosart_hist_htapesbuild, &
-                                        ndens, mfilt, nhtfrq, avgflag_pertape, avgflag_pertape, &
-                                        fincl1, fincl2, fincl3, fexcl1, fexcl2, fexcl3, max_tapes, max_namlen
-   use mosart_restfile         , only : mosart_rest_timemanager, mosart_rest_getfile, mosart_rest_fileread, &
-                                        mosart_rest_filewrite, mosart_rest_filename, finidat, nrevsn
-   use mosart_physics          , only : Euler, mosart_physics_restart
-   use perf_mod                , only : t_startf, t_stopf
-   use nuopc_shr_methods       , only : chkerr
-   use ESMF                    , only : ESMF_SUCCESS, ESMF_FieldGet, ESMF_FieldSMMStore, ESMF_FieldSMM, &
-                                        ESMF_TERMORDER_SRCSEQ, ESMF_Mesh
-   use mosart_io               , only : ncd_pio_openfile, ncd_inqdid, ncd_inqdlen, ncd_pio_closefile, ncd_decomp_init, &
-                                        pio_subsystem
-   use pio                     , only : file_desc_t
+   use shr_kind_mod       , only : r8 => shr_kind_r8, CS => shr_kind_cs, CL => shr_kind_CL
+   use shr_sys_mod        , only : shr_sys_abort
+   use shr_const_mod      , only : SHR_CONST_PI, SHR_CONST_CDAY
+   use mosart_vars        , only : re, spval, iulog, ice_runoff, &
+                                   frivinp, nsrContinue, nsrBranch, nsrStartup, nsrest, &
+                                   inst_index, inst_suffix, inst_name, decomp_option, &
+                                   bypass_routing_option, qgwl_runoff_option, barrier_timers, &
+                                   mainproc, npes, iam, mpicom_rof, budget_frq, isecspday, &
+                                   debug_mosart
+   use mosart_data        , only : ctl, Tctl, Tunit, TRunoff, Tpara
+   use mosart_budget_type , only : budget_type
+   use mosart_fileutils   , only : getfil
+   use mosart_timemanager , only : timemgr_init, get_nstep, get_curr_date
+   use mosart_histflds    , only : mosart_histflds_init, mosart_histflds_set
+   use mosart_histfile    , only : mosart_hist_updatehbuf, mosart_hist_htapeswrapup, mosart_hist_htapesbuild, &
+                                   ndens, mfilt, nhtfrq, avgflag_pertape, avgflag_pertape, &
+                                   fincl1, fincl2, fincl3, fexcl1, fexcl2, fexcl3, max_tapes, max_namlen
+   use mosart_restfile    , only : mosart_rest_timemanager, mosart_rest_getfile, mosart_rest_fileread, &
+                                   mosart_rest_filewrite, mosart_rest_filename, finidat, nrevsn
+   use mosart_physics     , only : updatestate_hillslope, updatestate_subnetwork, updatestate_mainchannel, Euler
+   use perf_mod           , only : t_startf, t_stopf
+   use nuopc_shr_methods  , only : chkerr
+   use ESMF               , only : ESMF_SUCCESS, ESMF_FieldGet, ESMF_FieldSMMStore, ESMF_FieldSMM, &
+                                   ESMF_TERMORDER_SRCSEQ, ESMF_Mesh, ESMF_Time
+   use mosart_io          , only : ncd_pio_openfile, ncd_inqdid, ncd_inqdlen, ncd_pio_closefile, ncd_decomp_init, &
+                                   pio_subsystem
+   use pio                , only : file_desc_t
    use mpi
 
    implicit none
@@ -225,12 +224,13 @@ contains
 
    !-----------------------------------------------------------------------
 
-   subroutine mosart_init1(rc)
+   subroutine mosart_init1(currTime, rc)
 
       !-------------------------------------------------
       ! Initialize mosart grid, mask, decomp
       !
       ! Arguments
+      type(ESMF_Time), intent(in) :: currTime
       integer, intent(out) :: rc
       !
       ! Local variables
@@ -243,6 +243,7 @@ contains
       !-------------------------------------------------
 
       rc = ESMF_SUCCESS
+      call timemgr_init(dtime_in=coupling_period, curr_date=currTime)
 
       !-------------------------------------------------------
       ! Obtain restart file if appropriate
@@ -251,15 +252,6 @@ contains
           (nsrest == nsrContinue) .or. (nsrest == nsrBranch  )) then
          call mosart_rest_getfile( file=fnamer )
       endif
-
-      !-------------------------------------------------------
-      ! Initialize time manager
-      !-------------------------------------------------------
-      if (nsrest == nsrStartup) then
-         call timemgr_init(dtime_in=coupling_period)
-      else
-         call mosart_rest_timemanager(file=fnamer)
-      end if
 
       !-------------------------------------------------------
       ! Write out tracers to stdout
