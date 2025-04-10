@@ -32,6 +32,7 @@ module mosart_driver
                                    pio_subsystem
    use pio                , only : file_desc_t
    use mpi
+   use shr_lnd2rof_tracers_mod, only : shr_lnd2rof_tracers_readnl
 
    implicit none
    private
