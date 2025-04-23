@@ -293,7 +293,7 @@ contains
     ntracers_nonh2o = ctl%ntracers_nonh2o
 
     ! determine output array and scale by unit convertsion
-    ! NOTE: the call to state_getimport will convert from input kg/m2s to m3/s
+    ! NOTE: the call to state_getimport will convert from input kg/m2/s to m3/s
 
     if (ntracers_nonh2o > 1) then
        call state_getimport2d(importState, 'Flrl_rofsur_nonh2o', begr, endr, ntracers_nonh2o, ctl%area, &
