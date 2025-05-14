@@ -147,7 +147,7 @@ contains
 
       call mosart_hist_addfld (fname='DIRECT_DISCHARGE_TO_OCEAN_GLC_ICE', units='m3/s', &
            avgflag='A', long_name='MOSART direct discharge into ocean from glc ice: ', &
-           ptr_rof=h_direct_glc_liq%data, default='active')
+           ptr_rof=h_direct_glc_ice%data, default='active')
 
       call mosart_hist_addfld (fname='STORAGE_MCH', units='m3',  &
            avgflag='A', long_name='MOSART main channelstorage', &
