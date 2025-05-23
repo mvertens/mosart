@@ -76,9 +76,8 @@ contains
     character(ESMF_MAXSTR) :: cvalue          ! Character string read from driver attribute
     logical                :: isPresent       ! Atribute is present
     logical                :: isSet           ! Atribute is set
-    integer                :: n, num
+    integer                :: n
     integer                :: ntracers_nonh2o
-    character(len=128)     :: fldname
     character(len=*), parameter :: subname='(rof_import_export:advertise_fields)'
     !-------------------------------------------------------------------------------
 
@@ -495,7 +494,6 @@ contains
     integer,          optional, intent(in)    :: ungridded_ubound
 
     ! local variables
-    integer :: rc
     character(len=*), parameter :: subname='(rof_import_export:fldlist_add)'
     !-------------------------------------------------------------------------------
 

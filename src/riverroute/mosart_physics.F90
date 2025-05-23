@@ -202,10 +202,10 @@ contains
       src_eroutUp(:,:) = 0._r8
       dst_eroutUp(:,:) = 0._r8
 
-      flow = 0._r8
-      erout_prev = 0._r8
-      eroutup_avg = 0._r8
-      erlat_avg = 0._r8
+      Trunoff%flow(:,:) = 0._r8
+      Trunoff%erout_prev(:,:) = 0._r8
+      Trunoff%eroutup_avg(:,:) = 0._r8
+      Trunoff%erlat_avg(:,:) = 0._r8
       negchan = 9999.0_r8
 
       do m = 1,DLevelH2R
@@ -213,7 +213,7 @@ contains
          ! accumulate/average erout at prior timestep (used in eroutUp calc) for budget analysis
          do nt=1,ntracers
            do nr=begr,endr
-                  erout_prev(nr,nt) = erout_prev(nr,nt) + erout(nr,nt)
+              Trunoff%erout_prev(nr,nt) = Trunoff%erout_prev(nr,nt) + erout(nr,nt)
            end do
          end do
 
@@ -315,8 +315,8 @@ contains
 
          call t_stopf('mosartr_SMeroutUp')
 
-         eroutup_avg = eroutup_avg + eroutUp
-         erlat_avg   = erlat_avg   + erlateral
+         Trunoff%eroutup_avg = Trunoff%eroutup_avg + Trunoff%eroutUp
+         Trunoff%erlat_avg   = Trunoff%erlat_avg + Trunoff%erlateral
 
          !------------------
          ! main channel routing
@@ -377,11 +377,11 @@ contains
                      end do
                      temp_erout(nt) = temp_erout(nt) / numDT_r(nr)
                      erout(nr,nt) = temp_erout(nt)
-                     flow(nr,nt) = flow(nr,nt) - erout(nr,nt)
+                     Trunoff%flow(nr,nt) = Trunoff%flow(nr,nt) - erout(nr,nt)
                      if (ntracers_nonH2O > 0 .and. nt == nt_liq) then
                        do nt_nonh2o = nt_ice+1,nt_ice+ntracers_nonH2O
                          erout(nr,nt_nonh2o) = temp_erout(nt_nonh2o) /numDT_r(nr)
-                         flow(nr,nt_nonh2o) = flow(nr,nt_nonh2o) - erout(nr,nt_nonh2o)
+                         Trunoff%flow(nr,nt_nonh2o) = Trunoff%flow(nr,nt_nonh2o) - erout(nr,nt_nonh2o)
                        enddo
                      endif
                   endif
