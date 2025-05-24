@@ -509,16 +509,16 @@ contains
      real(r8),intent(out):: etout     ! mass flow from sub-channels into main-reach [kg/s or mol/s]
      real(r8),intent(out):: dwt       ! change of mass storage [kg/s or mol/s]
 
-     if(TUnit%tlen(nr) <= TUnit%hlen(nr)) then ! if no tributaries, no subnetwork channel routing
+     if (TUnit%tlen(nr) <= TUnit%hlen(nr)) then ! if no tributaries, no subnetwork channel routing
        etout = -etin
      else
-       if (-(1._r8/limiter_advec*etout_liq*DeltaT) / wt_liq >=1._r8) then ! not completely coherent with subchannel routing
-         etout = -limiter_advec*(etin + max(0._r8,wt-epsilon(1._r8))/DeltaT)
-       else
-         etout = etout_liq/(wt_liq+epsilon(1._r8)) * wt
-       endif
+        if (-(1._r8/limiter_advec*etout_liq*DeltaT) >= wt_liq) then ! not completely coherent with subchannel routing
+           etout = -limiter_advec*(etin + max(0._r8,wt-epsilon(1._r8))/DeltaT)
+        else
+           etout = etout_liq/(wt_liq+epsilon(1._r8)) * wt
+        endif
      endif
-     dwt   = etin + etout
+     dwt = etin + etout
    end subroutine SNR_advect_tracers
 
    !-----------------------------------------------------------------------

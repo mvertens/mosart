@@ -414,11 +414,13 @@ contains
        end do
     end if
 
-    ! non-water liquid tracers from lnd
+    ! non-water liquid tracers from lnd to ocn
     do nt = 1,ntracers_nonh2o
        do nr = begr,endr
           if (ctl%mask(nr) >= 2) then
              rof_liq_nonh2o(nr,nt) = ctl%runoff(nr,nt+2) / (ctl%area(nr)*0.001_r8)
+          else
+             rof_liq_nonh2o(nr,nt) = 0._r8
           endif
        end do
     end do
