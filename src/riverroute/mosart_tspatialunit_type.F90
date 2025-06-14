@@ -21,6 +21,9 @@ module mosart_tspatialunit_type
 
   type Tspatialunit_type
 
+     ! euler computation
+     logical , pointer :: euler_calc(:) ! flag for calculating tracers in euler
+
      ! grid properties
      integer , pointer :: mask(:)      ! mosart mask of mosart cell, 0=null, 1=land with dnID, 2=outlet
      integer , pointer :: ID0(:)
@@ -32,7 +35,6 @@ module mosart_tspatialunit_type
      real(r8), pointer :: rlenTotal(:) ! length of all reaches, [m]
      real(r8), pointer :: Gxr(:)       ! drainage density within the cell, [1/m]
      real(r8), pointer :: frac(:)      ! fraction of cell included in the study area, [-]
-     logical , pointer :: euler_calc(:) ! flag for calculating tracers in euler
 
      ! hillslope properties
      real(r8), pointer :: nh(:)        ! manning's roughness of the hillslope (channel network excluded)
@@ -89,14 +91,14 @@ module mosart_tspatialunit_type
 contains
 
    !-----------------------------------------------------------------------
-   subroutine Init(this, begr, endr, ntracers, mosart_euler_calc, nlon, nlat, EMesh, &
+   subroutine Init(this, begr, endr, ntracers, nt_ice, nlon, nlat, EMesh, &
         frivinp, IDkey, c_twid, DLevelR, area, gindex, outletg, pio_subsystem, rc)
 
       ! Arguments
       class(Tspatialunit_type)            :: this
       integer               , intent(in)  :: begr, endr
       integer               , intent(in)  :: ntracers
-      character(len=*)      , intent(in)  :: mosart_euler_calc
+      integer               , intent(in)  :: nt_ice
       real(r8)              , intent(in)  :: area(begr:endr)
       integer               , intent(in)  :: nlon, nlat
       character(len=*)      , intent(in)  :: frivinp
@@ -139,20 +141,15 @@ contains
       call pio_initdecomp(pio_subsystem, pio_double, dsizes, compDOF, iodesc_dbl)
       call pio_initdecomp(pio_subsystem, pio_int   , dsizes, compDOF, iodesc_int)
 
+      ! For now assume that frozen runoff is the last tracer
+      ! set euler_calc = false for frozen runoff - all others are true
       allocate(this%euler_calc(ntracers))
-      do n = 1,ntracers
-         call shr_string_listGetName(mosart_euler_calc, n, ctemp)
-         if (trim(ctemp) == 'T') then
-            this%euler_calc = .true.
-         else if (trim(ctemp) == 'F') then
-            this%euler_calc = .false.
-         else
-            call shr_sys_abort(trim(subname)//' mosart_euler_calc can only be T or F')
-         end if
-      end do
-
-      ! TODO: Will be reworked after addition of extra tracers
-      this%euler_calc = .true.
+      this%euler_calc(:) = .true.
+      this%euler_calc(nt_ice) = .false.
+      if (ntracers > nt_ice) then
+        ! assume all other tracers are non-standard-H2O tracers
+        this%euler_calc(nt_ice:ntracers) = .false.
+      endif
 
       allocate(this%frac(begr:endr))
       ier = pio_inq_varid(ncid, name='frac', vardesc=vardesc)
@@ -355,7 +352,7 @@ contains
             ! constrain hlen (hillslope length) values based on cell area
             hlen_max = max(1000.0_r8, sqrt(this%area(n)))
             if(this%hlen(n) > hlen_max) then
-               this%hlen(n) = hlen_max   ! allievate the outlier in drainag\e density estimation. TO DO
+               this%hlen(n) = hlen_max   ! alleviate the outlier in drainage density estimation. TO DO
             end if
 
             this%tlen(n) = this%area(n) / this%rlen(n) / 2._r8 - this%hlen(n)
@@ -430,9 +427,9 @@ contains
 
       ! Arguments
       class(Tspatialunit_type) :: this
-      integer , intent(in)     :: begr, endr
-      integer , intent(in)     :: gindex(begr:endr)
-      integer , intent(in)     :: outletg(begr:endr)
+      integer , intent(in)     :: begr, endr          ! local start and end index
+      integer , intent(in)     :: gindex(begr:endr)   ! global index consistent with map file
+      integer , intent(in)     :: outletg(begr:endr)  ! outlet index, global
       integer , intent(out)    :: rc
 
       ! Local variables
@@ -533,9 +530,9 @@ contains
 
       ! Arguments
       class(Tspatialunit_type) :: this
-      integer  , intent(in)    :: begr, endr
-      integer  , intent(in)    :: nlon,nlat
-      real(r8) , intent(in)    :: area(begr:endr)
+      integer  , intent(in)    :: begr, endr      ! local start and end index
+      integer  , intent(in)    :: nlon,nlat       ! number of lon and lat
+      real(r8) , intent(in)    :: area(begr:endr) ! local area [m2]
       integer  , intent(out)   :: rc
 
       ! Local variables

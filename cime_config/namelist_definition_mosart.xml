@@ -255,31 +255,6 @@
     </desc>
   </entry>
 
-  <entry id="mosart_tracers">
-    <type>char</type>
-    <category>mosart</category>
-    <group>mosart_inparm</group>
-    <values>
-      <value>LIQ:ICE</value>
-    </values>
-    <desc>
-      Colon delimited string of mosart tracers.
-    </desc>
-  </entry>
-
-  <entry id="mosart_euler_calc">
-    <type>char</type>
-    <category>mosart</category>
-    <group>mosart_inparm</group>
-    <values>
-      <value>T:F</value>
-    </values>
-    <desc>
-      Colon delimited string of toggle to turn on Euler algorithm for
-      tracer name in mosart_tracers.
-    </desc>
-  </entry>
-
   <entry id="budget_frq">
     <type>integer(6)</type>
     <category>mosart</category>
@@ -288,9 +263,24 @@
       <value>-24</value>
     </values>
     <desc>
-      Frequency to perform budget check. Similar to nhtfrq, 
+      Frequency to perform budget check. Similar to nhtfrq,
       positive means in time steps,  0=monthly, negative means hours
       (i.e. 24 means every 24 time-steps and -24 means every day
+    </desc>
+  </entry>
+
+  <entry id="debug_mosart">
+    <type>integer</type>
+    <category>mosart</category>
+    <group>mosart_inparm</group>
+    <values>
+      <value>0</value>
+    </values>
+    <desc>
+      0 => no debug output,
+      1 => debug output triggered for water storage,
+      2 => debug output for advected tracers included (if applicable),
+      3 => highest level of debug output
     </desc>
   </entry>
 

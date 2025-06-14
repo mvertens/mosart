@@ -25,14 +25,14 @@ module rof_comp_nuopc
                                   model_label_DataInitialize => label_DataInitialize, &
                                   model_label_SetRunClock    => label_SetRunClock, &
                                   model_label_Finalize       => label_Finalize, &
-                                  SetVM, NUOPC_ModelGet
+                                  NUOPC_ModelGet
   use shr_kind_mod       , only : R8=>SHR_KIND_R8, CL=>SHR_KIND_CL, CS=>SHR_KIND_CS
   use shr_sys_mod        , only : shr_sys_abort
   use shr_log_mod        , only : shr_log_getlogunit, shr_log_setlogunit
   use shr_cal_mod        , only : shr_cal_noleap, shr_cal_gregorian, shr_cal_ymd2date
   use mosart_vars        , only : nsrStartup, nsrContinue, nsrBranch, &
                                   inst_index, inst_suffix, inst_name, &
-                                  mainproc, mpicom_rof, iam, npes, iulog, &
+                                  mainproc, mpicom_rof, iam, npes, iulog, vm, &
                                   nsrest, caseid, ctitle, version, hostname, username
   use mosart_data        , only : ctl
   use mosart_driver      , only : mosart_read_namelist, mosart_init1, mosart_init2, mosart_run
@@ -49,7 +49,6 @@ module rof_comp_nuopc
 
   ! Module routines
   public  :: SetServices
-  public  :: SetVM
   private :: InitializeP0
   private :: InitializeAdvertise
   private :: InitializeRealize
@@ -159,7 +158,6 @@ contains
     type(ESMF_Time)         :: refTime               ! Ref time
     type(ESMF_TimeInterval) :: timeStep              ! Model timestep
     type(ESMF_CalKind_Flag) :: esmf_caltype          ! esmf calendar type
-    type(ESMF_VM)           :: vm                    ! esmf virtual machine
     integer                 :: ref_ymd               ! reference date (YYYYMMDD)
     integer                 :: ref_tod               ! reference time of day (sec)
     integer                 :: yy,mm,dd              ! Temporaries for time query
@@ -186,6 +184,8 @@ contains
     !----------------------------------------------------------------------------
     ! generate local mpi comm
     !----------------------------------------------------------------------------
+
+    ! Note vm is in mosart_vars.F90 and can be shared among components
 
     call ESMF_GridCompGet(gcomp, vm=vm, rc=rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
@@ -408,6 +408,7 @@ contains
     ! local variables
     type(ESMF_Mesh)       :: Emesh
     type(ESMF_VM)         :: vm
+    type(ESMF_Time)         :: currTime              ! Current time
     integer , allocatable :: gindex(:)             ! global index space on my processor
     integer               :: lbnum                 ! input to memory diagnostic
     character(CL)         :: cvalue                ! temporary
@@ -482,8 +483,10 @@ contains
     ! - Adjust area estimation from DRT algorithm for those outlet grids
     !     - useful for grid-based representation only
     !     - need to compute areas where they are not defined in input file
-
-    call mosart_init1(rc)
+    call ESMF_ClockGet(clock, currTime=currtime, rc=rc)
+    if (ChkErr(rc,__LINE__,u_FILE_u)) return
+    
+    call mosart_init1(currtime, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     !--------------------------------
@@ -535,7 +538,7 @@ contains
     ! Create MOSART export state
     !--------------------------------
 
-    call export_fields(gcomp, ctl%begr, ctl%endr, rc)
+    call export_fields(gcomp, ctl%begr, ctl%endr, ctl%ntracers_nonh2o, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     ! Set global grid size scalars in export state
@@ -690,7 +693,7 @@ contains
 
     ! Advance mosart time step then run MOSART (export data is in ctl and Trunoff data types)
     call advance_timestep()
-    call mosart_run(ctl%begr, ctl%endr, ctl%ntracers, rstwr, nlend, rdate, rc)
+    call mosart_run(ctl%begr, ctl%endr, ctl%ntracers_tot, rstwr, nlend, rdate, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     !--------------------------------
@@ -698,7 +701,7 @@ contains
     !--------------------------------
 
     call t_startf ('lc_rof_export')
-    call export_fields(gcomp, ctl%begr, ctl%endr, rc)
+    call export_fields(gcomp, ctl%begr, ctl%endr, ctl%ntracers_liq, rc)
     if (ChkErr(rc,__LINE__,u_FILE_u)) return
     call t_stopf ('lc_rof_export')
 
@@ -810,33 +813,9 @@ contains
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
        call ESMF_LogWrite(subname//'setting alarms for' // trim(name), ESMF_LOGMSG_INFO)
 
-       !----------------
-       ! Restart alarm
-       !----------------
-       call NUOPC_CompAttributeGet(gcomp, name="restart_option", value=restart_option, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-       call NUOPC_CompAttributeGet(gcomp, name="restart_n", value=cvalue, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       read(cvalue,*) restart_n
-
-       call NUOPC_CompAttributeGet(gcomp, name="restart_ymd", value=cvalue, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-       read(cvalue,*) restart_ymd
-
-       call alarmInit(mclock, restart_alarm, restart_option, &
-            opt_n   = restart_n,           &
-            opt_ymd = restart_ymd,         &
-            RefTime = mcurrTime,           &
-            alarmname = 'alarm_restart', rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-       call ESMF_AlarmSet(restart_alarm, clock=mclock, rc=rc)
-       if (ChkErr(rc,__LINE__,u_FILE_u)) return
-
-       !----------------
-       ! Stop alarm
-       !----------------
+       !------------------------------------------------------------------
+       ! Stop alarm, set first in case needed for the restart alarm
+       !------------------------------------------------------------------
        call NUOPC_CompAttributeGet(gcomp, name="stop_option", value=stop_option, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
@@ -856,6 +835,30 @@ contains
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
        call ESMF_AlarmSet(stop_alarm, clock=mclock, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+       !-------------------------------------------
+       ! Restart alarm, set after the stop alarm
+       !-------------------------------------------
+       call NUOPC_CompAttributeGet(gcomp, name="restart_option", value=restart_option, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+       call NUOPC_CompAttributeGet(gcomp, name="restart_n", value=cvalue, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       read(cvalue,*) restart_n
+
+       call NUOPC_CompAttributeGet(gcomp, name="restart_ymd", value=cvalue, rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+       read(cvalue,*) restart_ymd
+
+       call alarmInit(mclock, restart_alarm, restart_option, &
+            opt_n   = restart_n,           &
+            opt_ymd = restart_ymd,         &
+            RefTime = mcurrTime,           &
+            alarmname = 'alarm_restart', rc=rc)
+       if (ChkErr(rc,__LINE__,u_FILE_u)) return
+
+       call ESMF_AlarmSet(restart_alarm, clock=mclock, rc=rc)
        if (ChkErr(rc,__LINE__,u_FILE_u)) return
 
     end if

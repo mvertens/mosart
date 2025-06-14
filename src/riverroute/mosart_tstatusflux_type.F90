@@ -29,7 +29,7 @@ module mosart_tstatusflux_type
       ! subnetwork channel
       !! states
       real(r8), pointer :: tarea(:,:)   ! area of channel water surface, [m2]
-      real(r8), pointer :: wt(:,:)      ! storage of surface water, [m3]
+      real(r8), pointer :: wt(:,:)      ! storage of subnetwork channel water, [m3]
       real(r8), pointer :: dwt(:,:)     ! change of water storage, [m3]
       real(r8), pointer :: yt(:,:)      ! water depth, [m]
       real(r8), pointer :: mt(:,:)      ! cross section area, [m2]
@@ -44,7 +44,7 @@ module mosart_tstatusflux_type
       ! main channel
       !! states
       real(r8), pointer :: rarea(:,:)   ! area of channel water surface, [m2]
-      real(r8), pointer :: wr(:,:)      ! storage of surface water, [m3]
+      real(r8), pointer :: wr(:,:)      ! storage of main channel water, [m3]
       real(r8), pointer :: dwr(:,:)     ! change of water storage, [m3]
       real(r8), pointer :: yr(:,:)      ! water depth. [m]
       real(r8), pointer :: mr(:,:)      ! cross section area, [m2]
@@ -63,7 +63,7 @@ module mosart_tstatusflux_type
       real(r8), pointer :: flow(:,:)        ! streamflow from the outlet of the reach, [m3/s]
       real(r8), pointer :: erin1(:,:)       ! inflow from upstream links during previous step, used for Muskingum method, [m3/s] NOT_USED
       real(r8), pointer :: erin2(:,:)       ! inflow from upstream links during current step, used for Muskingum method, [m3/s] NOT_USED
-      real(r8), pointer :: ergwl(:,:)       ! flux item for the adjustment of water balance residual in glacie, wetlands and lakes dynamics [m3/s] NOT_USED
+      real(r8), pointer :: ergwl(:,:)       ! flux item for the adjustment of water balance residual in glaciers, wetlands and lakes dynamics [m3/s] NOT_USED
 
       !! for Runge-Kutta algorithm NOT_USED
       real(r8), pointer :: wrtemp(:,:)  ! temporary storage item, for 4th order Runge-Kutta  algorithm;
