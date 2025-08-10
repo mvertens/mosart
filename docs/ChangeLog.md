@@ -1,4 +1,72 @@
 <hr>
+# Tag name:  mosart1.1.12
+### Originator(s): slevis
+### Date: Jul 31, 2025
+### One-line Summary: Add write_restart_at_endofrun functionality to mosart same as in clm
+
+Resolves issue https://github.com/ESCOMP/MOSART/issues/123
+
+Testing: standard testing
+  izumi ---- PASS
+  derecho -- PASS
+
+More details in the PRs:
+https://github.com/ESCOMP/MOSART/pull/124
+
+<hr>
+# Tag name:  mosart1.1.11
+### Originator(s): jedwards
+### Date: Jul 28, 2025
+### One-line Summary: Fix issue with st archive of rpointer files
+
+Main PR: ESCOMP/MOSART#115 Fix issue with st archive of rpointer files
+Second PR: ESCOMP/MOSART#122 This vm is needed for the esmf_aware_threading feature
+
+Testing: standard testing
+  izumi ---- OK
+  derecho -- OK
+
+More details in the PRs:
+https://github.com/ESCOMP/MOSART/pull/115
+https://github.com/ESCOMP/MOSART/pull/122
+
+<hr>
+# Tag name:  mosart1.1.10
+### Originator(s): slevis
+### Date: Jul 14, 2025
+### One-line Summary: Fix MOSART h0i file metadata
+
+Fixes ESCOMP/MOSART#120 MOSART h0i files end up with the same metadata as h0a files
+
+Testing: standard testing
+  izumi ---- OK
+  derecho -- OK
+
+See https://github.com/ESCOMP/MOSART/pull/121 for more details
+
+<hr>
+# Tag name:  mosart1.1.09
+### Originator(s): slevis
+### Date: Jul 03, 2025
+### One-line Summary: Separate instantaneous and non-inst. history files
+
+This is the mosart equivalent of ESCOMP/CTSM#2445.
+Also includes the merge of #118, though this DART-related one-line update seems to have been present in master already.
+
+Contributors: Erik Kluzek, Kevin Raeder
+
+Fixes ESCOMP/MOSART#52 Separate instantaneous from non-inst. history tapes
+Fixes ESCOMP/MOSART#116 Make st_archive handle output files from future MOSART+DART experiments
+
+Testing: standard testing
+  izumi ---- OK
+  derecho -- OK
+
+See https://github.com/ESCOMP/MOSART/pull/117 for more details
+See https://github.com/ESCOMP/MOSART/pull/118 for more details
+Contributes to https://github.com/ESCOMP/CTSM/pull/2445
+
+<hr>
 # Tag name:  mosart1.1.08
 ### Originator(s): samrabin
 ### Date: Jan 14, 2025

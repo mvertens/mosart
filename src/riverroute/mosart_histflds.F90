@@ -153,6 +153,14 @@ contains
            avgflag='A', long_name='MOSART main channelstorage', &
            ptr_rof=h_volr_mch%data, default='active')
 
+      ! MOSART (unlike the CLM) does not have the history_tape_in_use
+      ! capability, so it needs to throw an error when h0i is empty. For this
+      ! reason MOSART always need at least one instantaneous field so that
+      ! h0i will not be empty.
+      call mosart_hist_addfld (fname='STORAGE_MCH', units='m3',  &
+           avgflag='I', long_name='MOSART main channelstorage', &
+           ptr_rof=h_volr_mch, default='active')
+
       call mosart_hist_addfld (fname='QIRRIG_FROM_COUPLER', units='m3/s',  &
            avgflag='A', long_name='Amount of water used for irrigation (total flux received from coupler)', &
            ptr_rof=ctl%qirrig_liq, default='active')
