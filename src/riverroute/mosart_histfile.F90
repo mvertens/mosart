@@ -117,6 +117,7 @@ module mosart_histfile
 
    type history_tape
       integer  :: nflds(max_split_files)        ! number of active fields on file
+      logical  :: in_use(max_split_files)       ! false => file has no fields, do not create or write it
       integer  :: ntimes(max_split_files)       ! current number of time samples on tape; although ntimes is an array, all its values are the same
       integer  :: mfilt                         ! maximum number of time samples per tape
       integer  :: nhtfrq                        ! number of time samples per tape
@@ -146,8 +147,8 @@ module mosart_histfile
    integer :: nfmaster = 0                        ! number of fields in master field list
 
    ! Other variables
-   character(len=max_length_filename) :: locfnh(max_tapes, max_split_files)  ! local history file names
-   character(len=max_chars) :: locfnhr(max_tapes, max_split_files)  ! local history restart file names
+   character(len=max_length_filename) :: locfnh(max_tapes, max_split_files) = ' '  ! local history file names
+   character(len=max_chars) :: locfnhr(max_tapes, max_split_files) = ' '  ! local history restart file names
    logical :: htapes_defined = .false.            ! flag indicates history contents have been defined
 
    ! NetCDF  Id's
@@ -320,6 +321,7 @@ contains
             fld = fld + 1
          end do
          tape(t)%nflds(:) = 0
+         tape(t)%in_use(:) = .false.
       end do tape_loop1
 
       tape_loop2: do t = 1,max_tapes
@@ -411,14 +413,18 @@ contains
          if (ntapes > 0) exit
       end do tape_loop3
 
-      ! Ensure there are no "holes" in tape specification, i.e. empty tapes.
-      ! Enabling holes should not be difficult if necessary.
+      ! A file with no fields is simply not written.  This is normal when, for
+      ! example, no field has avgflag='I', in which case the instantaneous file
+      ! of every tape is empty and would otherwise be created empty every
+      ! history interval.  Note that the history restart file still carries a
+      ! slot for each (tape,file) pair so that its layout is unchanged.
 
       tape_loop4: do t = 1,ntapes
          file_loop3: do f = 1, max_split_files
-            if (tape(t)%nflds(f) == 0) then
-               write(iulog,*) trim(subname),' ERROR: Tape, file ', t, f, ' is empty'
-               call shr_sys_abort()
+            tape(t)%in_use(f) = (tape(t)%nflds(f) > 0)
+            if (mainproc .and. .not. tape(t)%in_use(f)) then
+               write(iulog,*) trim(subname),' : Tape, file ', t, f, &
+                    ' has no fields and will not be written'
             end if
          end do file_loop3
       end do tape_loop4
@@ -542,6 +548,7 @@ contains
 
       tape_loop: do t = 1, ntapes
          file_loop: do f = 1, max_split_files
+            if (.not. tape(t)%in_use(f)) cycle
             fld_loop: do fld = 1, tape(t)%nflds(f)
                avgflag  =  tape(t)%hlist(fld,f)%avgflag
                nacs     => tape(t)%hlist(fld,f)%nacs
@@ -972,6 +979,7 @@ contains
       ! and write data to history files if end of history interval.
       tape_loop1: do t = 1, ntapes
          file_loop1: do f = 1, max_split_files
+            if (.not. tape(t)%in_use(f)) cycle
 
             ! Determine if end of history interval
             tape(t)%is_endhist = .false.
@@ -1095,6 +1103,7 @@ contains
 
       tape_loop2: do t = 1, ntapes
          file_loop2: do f = 1, max_split_files
+            if (.not. tape(t)%in_use(f)) cycle
             if (nlend) then
                if_close(t) = .true.
             else if (rstwr) then
@@ -1452,6 +1461,7 @@ contains
                call ncd_io(varname='fexcl', data=fexcl(:,t), ncid=ncid_hist(t,f), flag='read')
 
                call ncd_io('nflds',   tape(t)%nflds(f),  'read', ncid_hist(t,f) )
+               tape(t)%in_use(f) = (tape(t)%nflds(f) > 0)
                call ncd_io('ntimes',  tape(t)%ntimes(f), 'read', ncid_hist(t,f) )
                call ncd_io('nhtfrq',  tape(t)%nhtfrq, 'read', ncid_hist(t,f) )
                call ncd_io('mfilt',   tape(t)%mfilt,  'read', ncid_hist(t,f) )
@@ -1491,7 +1501,7 @@ contains
 
                ! If history file is not full, open it
 
-               if (tape(t)%ntimes(f) /= 0) then
+               if (tape(t)%in_use(f) .and. tape(t)%ntimes(f) /= 0) then
                   call ncd_pio_openfile (nfid(t,f), trim(locfnh(t,f)), ncd_write)
                end if
 
