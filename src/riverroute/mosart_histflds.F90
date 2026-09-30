@@ -149,9 +149,12 @@ contains
            avgflag='A', long_name='MOSART direct discharge into ocean from glc ice: ', &
            ptr_rof=h_direct_glc_ice%data, default='active')
 
+      ! Instantaneous, and off by default: request it with hist_fincl to get a
+      ! snapshot of main channel storage.  A monthly mean of storage is already
+      ! available as STORAGE_<tracer>.
       call mosart_hist_addfld (fname='STORAGE_MCH', units='m3',  &
-           avgflag='A', long_name='MOSART main channelstorage', &
-           ptr_rof=h_volr_mch%data, default='active')
+           avgflag='I', long_name='MOSART main channelstorage', &
+           ptr_rof=h_volr_mch%data, default='inactive')
 
       call mosart_hist_addfld (fname='QIRRIG_FROM_COUPLER', units='m3/s',  &
            avgflag='A', long_name='Amount of water used for irrigation (total flux received from coupler)', &
