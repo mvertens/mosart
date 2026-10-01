@@ -37,7 +37,7 @@ module mosart_histfile
 
    ! Namelist
    integer                  :: ni
-   integer,          public :: ndens(max_tapes) = 1                ! namelist: output density of netcdf history files
+   integer,          public :: ndens(max_tapes) = 2                ! namelist: output density of netcdf history files
    integer,          public :: mfilt(max_tapes) = 30               ! namelist: number of time samples per tape
    integer,          public :: nhtfrq(max_tapes) = (/0, -24, -24/) ! namelist: history write freq(0=monthly)
    character(len=1), public :: avgflag_pertape(max_tapes) = (/(' ',ni=1,max_tapes)/) ! namelist: per tape averaging flag
